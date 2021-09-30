@@ -97,6 +97,22 @@ export const sample_data5 = (() => {
     const data: string = fs.readFileSync("tests/data/Block.5.sample1.json", "utf-8");
     return JSON.parse(data);
 })();
+export const sample_data6_10 = (() => {
+    const data: string = fs.readFileSync("tests/data/Blocks.6-10.sample1.json", "utf-8");
+    return JSON.parse(data);
+})();
+export const sample_data11_15 = (() => {
+    const data: string = fs.readFileSync("tests/data/Blocks.11-15.sample1.json", "utf-8");
+    return JSON.parse(data);
+})();
+export const sample_data16_22 = (() => {
+    const data: string = fs.readFileSync("tests/data/Blocks.16-22.sample1.json", "utf-8");
+    return JSON.parse(data);
+})();
+export const sample_data23 = (() => {
+    const data: string = fs.readFileSync("tests/data/Block.23.sample1.json", "utf-8");
+    return JSON.parse(data);
+})();
 
 export const recovery_sample_data = (() => {
     const data: string = fs.readFileSync("tests/data/Recovery.blocks.sample10.json", "utf-8");
@@ -108,6 +124,22 @@ export const sample_preImageInfo = {
     hash: "0x790ab7c8f8ddbf012561e70c944c1835fd1a873ca55c973c828164906f8b35b924df7bddcafade688ad92cfb4414b2cf69a02d115dc214bbd00d82167f645e7e",
     height: "6",
 };
+export const sample_preImageInfo1 = {
+    utxo: "0x70455f0b03f4b8d54b164b251e813b3fecd447d4bfe7b173ef86654429d2f5c3866d3ea406bf02163221a2d4029f0e0930a48304b2ea0f9277c2b32795c4005f",
+    hash: "0x412f8e0f422914cfbdf31de220a86a5655adbbe564092c8caf737ab3969cb42c72fe33d367ed7f65970c3d5d78526507f10129a4e6226beb2c5c7faa2da84c63",
+    height: "22",
+};
+export const sample_preImageInfo2 = {
+    utxo: "0x6fbcdb2573e0f5120f21f1875b6dc281c2eca3646ec2c39d703623d89b0eb83cd4b12b73f18db6bc6e8cbcaeb100741f6384c498ff4e61dd189e728d80fb9673",
+    hash: "0x412f8e0f422914cfbdf31de220a86a5655adbbe564092c8caf737ab3969cb42c72fe33d367ed7f65970c3d5d78526507f10129a4e6226beb2c5c7faa2da84c63",
+    height: "22",
+};
+export const sample_preImageInfo3 = {
+    utxo: "0x00bac393977fbd1e0edc70a34c7ca802dafe57f2b4a2aabf1adaac54892cb1cbae72cdeeb212904101382690d18d2d2c6ac99b83227ca73b307fde0807c4af03",
+    hash: "0x412f8e0f422914cfbdf31de220a86a5655adbbe564092c8caf737ab3969cb42c72fe33d367ed7f65970c3d5d78526507f10129a4e6226beb2c5c7faa2da84c63",
+    height: "22",
+};
+
 
 export const sample_reEnroll_preImageInfo = {
     utxo: "0x70455f0b03f4b8d54b164b251e813b3fecd447d4bfe7b173ef86654429d2f5c3866d3ea406bf02163221a2d4029f0e0930a48304b2ea0f9277c2b32795c4005f",
@@ -342,9 +374,50 @@ export class TestVoteraServer {
         this.server.listen(port, () => {
             done();
         });
-        this.app.get("/votera-proposal/ID1234567890", (req: Request, res: Response) => {
+        this.app.get("/votera-proposal/469008972006", (req: Request, res: Response) => {
             const response = {
-                proposalId: "1234567890",
+                proposalId: "469008972006",
+                proposer_address: "boa1xrval7gwhjz4k9raqukcnv2n4rl4fxt74m2y9eay6l5mqdf4gntnzhhscrh",
+                name: "Make better world!",
+                type: "BUSINESS",
+                status: "closed",
+                votePeriod: { begin: "2021-07-26", end: "2021-08-02" },
+                createdAt: "2021-07-23T04:49:26.634Z",
+                description: "Description Make better world!",
+                proposal_fee_tx_hash:
+                    "0x11c6b0395c8e1716978c41958eab84e869755c09f7131b3bbdc882a647cb3f2c46c450607c6da71d34d1eab28fbfdf14376b444ef46ed1d0a7d2237ab430ebf5",
+                vote_fee: 100,
+                fundingAmount: 100000,
+                voting_start_height: 3,
+                voting_end_height: 6,
+                tx_hash_vote_fee:
+                    "0x8b6a2e1ecc3616ad63c73d606c4019407ebfd06a122519e7bd88d99af92d19d9621323d7c2e68593053a570522b6bc8575d1ee45a74ee38726f297a5ce08e33d",
+                assessResult: {
+                    average: 7,
+                    nodeCount: 2,
+                    completeness: 6,
+                    realization: 6.5,
+                    profitability: 7,
+                    attractiveness: 7.5,
+                    expansion: 8,
+                },
+                assessPeriod: { begin: "2021-08-18", end: "2021-08-18" },
+                creator: { username: "test" },
+                attachment: [
+                    {
+                        id: "61f6724251k789",
+                        name: "Make the world better",
+                        url: "https://s3.ap-northeast-2.amazonaws.com/com.kosac.defora.beta.upload-image/BOASCAN_Requirements_Documentation_Version1_0_EN_copy_fb69a8a7d5.pdf",
+                        mime: "application/pdf",
+                        doc_hash: "5b5073302c8570a269a5d028cc256d80b7d5d22aaa05e279fac7ced94d7df7c9",
+                    },
+                ],
+            };
+            return res.status(200).send(response);
+        });
+        this.app.get("/votera-proposal/469008972001", (req: Request, res: Response) => {
+            const response = {
+                proposalId: "469008972001",
                 proposer_address: "boa1xrval7gwhjz4k9raqukcnv2n4rl4fxt74m2y9eay6l5mqdf4gntnzhhscrh",
                 name: "Make better world!",
                 type: "BUSINESS",
