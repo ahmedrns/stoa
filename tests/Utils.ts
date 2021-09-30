@@ -342,9 +342,9 @@ export class TestVoteraServer {
         this.server.listen(port, () => {
             done();
         });
-        this.app.get("/votera-proposal/ID1234567890", (req: Request, res: Response) => {
+        this.app.get("/votera-proposal/469008972006", (req: Request, res: Response) => {
             const response = {
-                proposalId: "1234567890",
+                proposalId: "469008972006",
                 proposer_address: "boa1xrval7gwhjz4k9raqukcnv2n4rl4fxt74m2y9eay6l5mqdf4gntnzhhscrh",
                 name: "Make better world!",
                 type: "BUSINESS",
