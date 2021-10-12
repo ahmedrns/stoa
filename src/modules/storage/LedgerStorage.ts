@@ -2232,7 +2232,11 @@ export class LedgerStorage extends Storages {
             cur_height +
             ` as height,
                 validators.preimage_height,
-                validators.preimage_hash
+                validators.preimage_hash,
+                validators.amount,
+                validators.slashed,
+                validators.slash_height,
+                count(*) OVER() AS full_count
             FROM (SELECT MAX(block_height) as enrolled_at,
                     (CASE WHEN block_height = 0 THEN
                           block_height
