@@ -2216,9 +2216,10 @@ export class LedgerStorage extends Storages {
      * of the returned Promise is called with the records
      * and if an error occurs the `.catch` is called with an error.
      */
-    public getValidatorsAPI(height: Height | null, address: string | null): Promise<any[]> {
+    public getValidatorsAPI(height: Height | null, address: string | null, limit?: number, page?: number): Promise<any[]> {
         let cur_height: string;
 
+        const LIMIT_QUERY = limit ? page ? `LIMIT ${limit} OFFSET ${limit * (page - 1)}` : '' : '';
         if (height !== null) cur_height = height.toString();
         else cur_height = `(SELECT MAX(height) as height FROM blocks)`;
 
@@ -2263,7 +2264,8 @@ export class LedgerStorage extends Storages {
 
         if (address != null) sql += ` AND validators.address = '` + address + `'`;
 
-        sql += ` ORDER BY enrollments.enrolled_at ASC, enrollments.utxo_key ASC;`;
+        sql += ` ORDER BY enrollments.enrolled_at ASC, enrollments.utxo_key ASC `;
+        sql += LIMIT_QUERY;
 
         return this.query(sql, [this.validator_cycle]);
     }
