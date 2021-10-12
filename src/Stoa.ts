@@ -14,6 +14,7 @@ import {
     Transaction,
     Utils,
 } from "boa-sdk-ts";
+import _ from 'lodash'
 import { cors_options, cors_private_options } from "./cors";
 import { AgoraClient } from "./modules/agora/AgoraClient";
 import { IDatabaseConfig } from "./modules/common/Config";
@@ -1805,7 +1806,7 @@ class Stoa extends WebService {
                     transactionList.push({
                         height: JSBI.BigInt(row.block_height).toString(),
                         tx_hash: new Hash(row.tx_hash, Endian.Little).toString(),
-                        type: row.type,
+                        type: _.capitalize(ConvertTypes.TxTypeToString(row.type)),
                         amount: JSBI.BigInt(row.amount).toString(),
                         tx_fee: JSBI.BigInt(row.tx_fee).toString(),
                         tx_size: JSBI.BigInt(row.tx_size).toString(),
