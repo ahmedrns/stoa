@@ -14,6 +14,7 @@ import {
     Transaction,
     Utils,
 } from "boa-sdk-ts";
+import _ from 'lodash'
 import { cors_options, cors_private_options } from "./cors";
 import { AgoraClient } from "./modules/agora/AgoraClient";
 import { IDatabaseConfig } from "./modules/common/Config";
