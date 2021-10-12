@@ -982,6 +982,7 @@ class Stoa extends WebService {
                     senders: [],
                     receivers: [],
                     fee: JSBI.add(JSBI.BigInt(data.tx[0].tx_fee), JSBI.BigInt(data.tx[0].payload_fee)).toString(),
+                    data_fee: data.tx[0].payload_fee
                 };
 
                 for (const elem of data.senders)
@@ -1254,9 +1255,11 @@ class Stoa extends WebService {
                         height: data[0].height,
                         transactions: data[0].transactions,
                         validators: data[0].validators,
-                        frozen_coin: 5283595, // FIX ME static data because of unavailability of real data
+                        frozen_coin: data[0].total_frozen,
+                        total_reward: data[0].total_reward,
                         circulating_supply: 5283535,
                         active_validators: 155055,
+                        price: 5465
                     };
                     return res.status(200).send(JSON.stringify(boaStats));
                 }
@@ -2216,9 +2219,11 @@ class Stoa extends WebService {
                             height: data[0].height,
                             transactions: data[0].transactions,
                             validators: data[0].validators,
-                            frozen_coin: 5283595, // FIX ME static data because of unavailability of real data
+                            frozen_coin: data[0].total_frozen,
+                            total_reward: data[0].total_reward,
                             circulating_supply: 5283535,
                             active_validators: 155055,
+                            price: 155055,
                         };
                         this.socket.io.emit(events.server.latestStats, boaStats);
                         logger.info(`Emitted Updated BOA stats`, {
@@ -2393,6 +2398,7 @@ class Stoa extends WebService {
         switch (filter) {
             case "D": {
                 filter_begin = filter_end.unix() - 86400;
+                filter = "H";
                 break;
             }
             case "5D": {
@@ -2402,6 +2408,7 @@ class Stoa extends WebService {
             }
             case "M": {
                 filter_begin = filter_end.unix() - 2592000;
+                filter = "D";
                 break;
             }
             case "3M": {
@@ -2416,6 +2423,12 @@ class Stoa extends WebService {
             }
             case "Y": {
                 filter_begin = filter_end.unix() - 31536000;
+                filter = "M";
+                break;
+            }
+            case "3Y": {
+                filter_begin = filter_end.unix() - 94694400;
+                filter = "Y";
                 break;
             }
             case "5Y": {
@@ -2759,6 +2772,7 @@ class Stoa extends WebService {
         switch (filter) {
             case "D": {
                 filter_begin = filter_end.unix() - 86400;
+                filter = "H";
                 break;
             }
             case "5D": {
@@ -2768,6 +2782,7 @@ class Stoa extends WebService {
             }
             case "M": {
                 filter_begin = filter_end.unix() - 2592000;
+                filter = "D";
                 break;
             }
             case "3M": {
@@ -2782,6 +2797,12 @@ class Stoa extends WebService {
             }
             case "Y": {
                 filter_begin = filter_end.unix() - 31536000;
+                filter = "M";
+                break;
+            }
+            case "3Y": {
+                filter_begin = filter_end.unix() - 94694400;
+                filter = "Y";
                 break;
             }
             case "5Y": {

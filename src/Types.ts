@@ -216,6 +216,16 @@ export interface IBOAStats {
     frozen_coin: number;
 
     /**
+     * Total no. of reward
+     */
+    total_reward: number;
+
+    /**
+     * Boa price
+     */
+    price: number;
+
+    /**
      * Total no. of active validators
      */
     active_validators: number;
@@ -464,6 +474,11 @@ export interface ITxOverview {
      * Transaction fee
      */
     fee: string;
+
+    /**
+     * Payload fee
+     */
+    data_fee: string;
 }
 
 /**
@@ -613,7 +628,7 @@ export enum DisplayTxType {
  * Class that converts various enum values into strings
  */
 export class ConvertTypes {
-    static tx_types: string[] = ["payment", "freeze"];
+    static tx_types: string[] = ["payment", "freeze", "coinbase"];
     static proposal_types: string[] = ["System", "Fund"];
     static display_tx_type: string[] = ["inbound", "outbound", "freeze", "payload"];
 

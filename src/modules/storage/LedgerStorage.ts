@@ -3986,10 +3986,14 @@ export class LedgerStorage extends Storages {
      */
     public getBOAStats(): Promise<any[]> {
         const sql = `SELECT max(height) as height,
-             (SELECT count(*) from transactions) as transactions,
-             (SELECT count(*) from validators) as validators
+            SUM(A.total_reward) as total_reward,
+            SUM(A.total_frozen) as total_frozen,
+            (SELECT count(*) from transactions) as transactions,
+            (SELECT count(*) from validators) as validators
             FROM
-                blocks;`;
+                blocks AS B
+            JOIN accounts AS A
+                ;`;
 
         return this.query(sql, []);
     }
