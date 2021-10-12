@@ -174,6 +174,21 @@ export interface ITxHistoryElement {
      * Time at which the output of the transaction becomes available
      */
     unlock_time: number;
+
+    /**
+     * Transaction fee
+     */
+    tx_fee: number;
+
+    /**
+     * Transaction size
+     */
+    tx_size: number;
+
+    /**
+     * Full count
+     */
+    full_count: number;
 }
 
 /**

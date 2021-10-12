@@ -353,7 +353,7 @@ class Stoa extends WebService {
      * Returns a set of Validators based on the block height if there is a height.
      * If height was not provided the latest validator set is returned.
      */
-    private getValidators(req: express.Request, res: express.Response) {
+    private async getValidators(req: express.Request, res: express.Response) {
         if (req.query.height !== undefined && !Utils.isPositiveInteger(req.query.height.toString())) {
             res.status(400).send(`Invalid value for parameter 'height': ${req.query.height.toString()}`);
             return;
@@ -368,9 +368,10 @@ class Stoa extends WebService {
                 status: Status.Error,
                 responseTime: Number(moment().utc().unix() * 1000),
             });
-
+        const pagination: IPagination = await this.paginate(req, res);
         this.ledger_storage
-            .getValidatorsAPI(height, null)
+            .getValidatorsAPI(height, null, pagination.pageSize,
+                pagination.page)
             .then((rows: any[]) => {
                 // Nothing found
                 if (!rows.length) {
@@ -458,7 +459,7 @@ class Stoa extends WebService {
      * If height was not provided the latest validator set is returned.
      * If an address was provided, return the validator data of the address if it exists.
      */
-    private getValidator(req: express.Request, res: express.Response) {
+    private async getValidator(req: express.Request, res: express.Response) {
         if (req.query.height !== undefined && !Utils.isPositiveInteger(req.query.height.toString())) {
             res.status(400).send(`Invalid value for parameter 'height': ${req.query.height.toString()}`);
             return;
@@ -475,6 +476,7 @@ class Stoa extends WebService {
                 status: Status.Error,
                 responseTime: Number(moment().utc().unix() * 1000),
             });
+        const pagination: IPagination = await this.paginate(req, res);
 
         this.ledger_storage
             .getValidatorsAPI(height, address)
@@ -910,6 +912,9 @@ class Stoa extends WebService {
                         amount: JSBI.BigInt(row.amount).toString(),
                         unlock_height: JSBI.BigInt(row.unlock_height).toString(),
                         unlock_time: row.unlock_time,
+                        tx_fee: row.tx_fee,
+                        tx_size: row.tx_size,
+                        full_count: row.full_count
                     });
                 }
                 res.status(200).send(JSON.stringify(out_put));

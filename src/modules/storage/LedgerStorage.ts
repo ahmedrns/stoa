@@ -2205,9 +2205,10 @@ export class LedgerStorage extends Storages {
      * of the returned Promise is called with the records
      * and if an error occurs the `.catch` is called with an error.
      */
-    public getValidatorsAPI(height: Height | null, address: string | null): Promise<any[]> {
+    public getValidatorsAPI(height: Height | null, address: string | null, limit?: number, page?: number): Promise<any[]> {
         let cur_height: string;
 
+        const LIMIT_QUERY = limit ? page ? `LIMIT ${limit} OFFSET ${limit * (page - 1)}` : '' : '';
         if (height !== null) cur_height = height.toString();
         else cur_height = `(SELECT MAX(height) as height FROM blocks)`;
 
@@ -2252,7 +2253,8 @@ export class LedgerStorage extends Storages {
 
         if (address != null) sql += ` AND validators.address = '` + address + `'`;
 
-        sql += ` ORDER BY enrollments.enrolled_at ASC, enrollments.utxo_key ASC;`;
+        sql += ` ORDER BY enrollments.enrolled_at ASC, enrollments.utxo_key ASC `;
+        sql += LIMIT_QUERY;
 
         return this.query(sql, [this.validator_cycle]);
     }
@@ -3135,7 +3137,10 @@ export class LedgerStorage extends Storages {
                 FTX.peer,
                 FTX.peer_count,
                 FTX.tx_hash,
-                FTX.type
+                FTX.type,
+                FTX.tx_fee,
+                FTX.tx_size,
+                count(*) OVER() AS full_count
             FROM
             (
                 SELECT
@@ -3184,7 +3189,9 @@ export class LedgerStorage extends Storages {
                         WHEN (TX.payload_size) > 0 THEN 3
                         WHEN (IFNULL(SUM(TX.income),0) - IFNULL(SUM(TX.spend),0)) > 0 THEN 0
                         ELSE 1
-                    END AS display_tx_type
+                    END AS display_tx_type,
+                    TX.tx_fee,
+                    TX.tx_size
                     ${filter_peer_field}
                 FROM
                 (
@@ -3198,7 +3205,9 @@ export class LedgerStorage extends Storages {
                         T.unlock_height,
                         T.payload_size,
                         0 as income,
-                        IFNULL(SUM(S.amount), 0) AS spend
+                        IFNULL(SUM(S.amount), 0) AS spend,
+                        T.tx_fee,
+                        T.tx_size
                     FROM
                         tx_outputs S
                         INNER JOIN tx_inputs I ON (I.utxo = S.utxo_key)
@@ -3221,7 +3230,9 @@ export class LedgerStorage extends Storages {
                         T.unlock_height,
                         T.payload_size,
                         IFNULL(SUM(O.amount), 0) AS income,
-                        0 as spend
+                        0 as spend,
+                        T.tx_fee,
+                        T.tx_size
                     FROM
                         tx_outputs O
                         INNER JOIN transactions T ON (T.tx_hash = O.tx_hash)
