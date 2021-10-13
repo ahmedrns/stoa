@@ -902,14 +902,14 @@ class Stoa extends WebService {
                 const out_put: ITxHistoryElement[] = [];
                 for (const row of rows) {
                     out_put.push({
-                        display_tx_type: ConvertTypes.DisplayTxTypeToString(row.display_tx_type),
+                        display_tx_type: _.capitalize(ConvertTypes.DisplayTxTypeToString(row.display_tx_type)),
                         address: row.address,
                         peer: row.peer,
                         peer_count: row.peer_count,
                         height: JSBI.BigInt(row.height).toString(),
                         time: row.block_time,
                         tx_hash: new Hash(row.tx_hash, Endian.Little).toString(),
-                        tx_type: ConvertTypes.TxTypeToString(row.type),
+                        tx_type: _.capitalize(ConvertTypes.TxTypeToString(row.type)),
                         amount: JSBI.BigInt(row.amount).toString(),
                         unlock_height: JSBI.BigInt(row.unlock_height).toString(),
                         unlock_time: row.unlock_time,
@@ -973,7 +973,7 @@ class Stoa extends WebService {
                     height: JSBI.BigInt(data.tx[0].height).toString(),
                     time: data.tx[0].block_time,
                     tx_hash: new Hash(data.tx[0].tx_hash, Endian.Little).toString(),
-                    tx_type: ConvertTypes.TxTypeToString(data.tx[0].type),
+                    tx_type: _.capitalize(ConvertTypes.TxTypeToString(data.tx[0].type)),
                     tx_size: data.tx[0].tx_size,
                     unlock_height: JSBI.BigInt(data.tx[0].unlock_height).toString(),
                     lock_height: JSBI.BigInt(data.tx[0].lock_height).toString(),
