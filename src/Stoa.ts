@@ -1258,7 +1258,7 @@ class Stoa extends WebService {
                         frozen_coin: data[0].total_frozen,
                         total_reward: data[0].total_reward,
                         circulating_supply: 5283535,
-                        active_validators: 155055,
+                        active_validators: data[0].active_validator,
                         price: 5465
                     };
                     return res.status(200).send(JSON.stringify(boaStats));
