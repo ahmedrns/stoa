@@ -56,7 +56,7 @@ import {
     IProposalAPI,
     IProposalList,
     IValidatorReward,
-    ValidatorData, ITxHistory, ITxHistoryItem, ITxHistoryHeader,
+    ValidatorData, ITxHistory, ITxHistoryItem, ITxHistoryHeader, IBlockValidator,
 } from "./Types";
 import lodash from "lodash";
 import bodyParser from "body-parser";
@@ -284,6 +284,7 @@ class Stoa extends WebService {
         this.app.get("/proposals/", isBlackList, this.getProposals.bind(this));
         this.app.get("/proposal/:proposal_id", isBlackList, this.getProposalById.bind(this));
         this.app.get("/validator/reward/:address", isBlackList, this.getValidatorReward.bind(this));
+        this.app.get("/block/validators", isBlackList, this.getBlockValidators.bind(this));
 
         // It operates on a private port
         this.private_app.post("/block_externalized", this.postBlock.bind(this));
@@ -843,9 +844,9 @@ class Stoa extends WebService {
         filter_type =
             req.query.type !== undefined
                 ? req.query.type
-                      .toString()
-                      .split(",")
-                      .map((m) => ConvertTypes.toDisplayTxType(m))
+                    .toString()
+                    .split(",")
+                    .map((m) => ConvertTypes.toDisplayTxType(m))
                 : [0, 1, 2, 3];
 
         if (filter_type.find((m) => m < 0) !== undefined) {
@@ -2206,7 +2207,7 @@ class Stoa extends WebService {
                     if (updated)
                         logger.info(
                             `Update a blockHeader : ${block_header.toString()}, ` +
-                                `block height : ${block_header.height.toString()}`,
+                            `block height : ${block_header.height.toString()}`,
                             {
                                 operation: Operation.db,
                                 height: block_header.height.toString(),
@@ -2217,7 +2218,7 @@ class Stoa extends WebService {
                     if (put)
                         logger.info(
                             `puts a blockHeader history : ${block_header.toString()}, ` +
-                                `block height : ${block_header.height.toString()}`,
+                            `block height : ${block_header.height.toString()}`,
                             {
                                 operation: Operation.db,
                                 height: block_header.height.toString(),
@@ -2244,9 +2245,8 @@ class Stoa extends WebService {
                     if (changes)
                         logger.info(
                             `Saved a pre-image utxo : ${pre_image.utxo.toString().substr(0, 18)}, ` +
-                                `hash : ${pre_image.hash.toString().substr(0, 18)}, pre-image height : ${
-                                    pre_image.height
-                                }`,
+                            `hash : ${pre_image.hash.toString().substr(0, 18)}, pre-image height : ${pre_image.height
+                            }`,
                             {
                                 operation: Operation.db,
                                 height: HeightManager.height.toString(),
@@ -2725,6 +2725,77 @@ class Stoa extends WebService {
                     responseTime: Number(moment().utc().unix() * 1000),
                 });
                 return res.status(500).send("Failed to data lookup");
+            });
+    }
+
+    /**
+     * GET block validators
+     * Returns a set of Validators based on the block height.
+     */
+    public async getBlockValidators(req: express.Request, res: express.Response) {
+        if (req.query.height !== undefined && !Utils.isPositiveInteger(req.query.height.toString())) {
+            res.status(400).send(`Invalid value for parameter 'height': ${req.query.height.toString()}`);
+            return;
+        }
+        const height = Number(req.query.height);
+        const pagination: IPagination = await this.paginate(req, res);
+        this.ledger_storage
+            .getBlockValidators(height, pagination.pageSize, pagination.page)
+            .then((rows: any[]) => {
+                // Nothing found
+                if (!rows.length) {
+                    if (height !== null) res.status(400).send("No validator exists for block height.");
+                    else res.status(503).send("Stoa is currently unavailable.");
+                    return;
+                }
+                const out_put: IBlockValidator[] = [];
+                for (const row of rows) {
+
+                    const preimage_hash: Buffer = row.preimage_hash;
+                    let preimage_height: JSBI = JSBI.BigInt(row.preimage_height);
+                    const target_height: Height = new Height(row.height);
+                    let result_preimage_hash = new Hash(Buffer.alloc(Hash.Width));
+                    let preimage_height_str: string;
+
+                    // Hashing preImage
+                    if (JSBI.greaterThanOrEqual(JSBI.BigInt(preimage_height), target_height.value)) {
+                        result_preimage_hash.fromBinary(preimage_hash, Endian.Little);
+                        const count = JSBI.toNumber(JSBI.subtract(JSBI.BigInt(preimage_height), target_height.value));
+                        for (let i = 0; i < count; i++) {
+                            result_preimage_hash = hash(result_preimage_hash.data);
+                            preimage_height = JSBI.subtract(preimage_height, JSBI.BigInt(1));
+                        }
+                        preimage_height_str = preimage_height.toString();
+                    } else {
+                        preimage_height_str = "";
+                        result_preimage_hash = new Hash(Buffer.alloc(Hash.Width));
+                    }
+
+                    const preimage: IPreimage = {
+                        height: preimage_height_str,
+                        hash: result_preimage_hash.toString(),
+                    };
+
+                    const validator: IBlockValidator = {
+                        address: row.address,
+                        utxo_key: new Hash(row.stake, Endian.Little).toString(),
+                        pre_image: preimage,
+                        slashed: row.slashed,
+                        block_signed: row.signed,
+                        full_count: row.full_count
+                    };
+                    out_put.push(validator);
+                }
+                res.status(200).send(JSON.stringify(out_put));
+            })
+            .catch((err) => {
+                logger.error("Failed to data lookup to the DB: " + err, {
+                    operation: Operation.db,
+                    height: HeightManager.height.toString(),
+                    status: Status.Error,
+                    responseTime: Number(moment().utc().unix() * 1000),
+                });
+                res.status(500).send("Failed to data lookup");
             });
     }
 

@@ -295,6 +295,43 @@ export interface IBOAStats {
     circulating_supply: number;
 }
 
+
+/**
+ * The interface of the block validators
+ */
+export interface IBlockValidator {
+
+    /**
+     * UTXO key of the validator
+     */
+    utxo_key: string;
+
+    /**
+     * Address of the validator
+     */
+    address: string;
+
+    /**
+     * Pre image
+     */
+    pre_image: IPreimage;
+
+    /**
+     * Slashed 
+     */
+    slashed: string;
+
+    /**
+     * Block signed 
+     */
+    block_signed: string;
+
+    /**
+     * Full count
+     */
+    full_count: number;
+}
+
 /**
  * The interface of the block overview
  */

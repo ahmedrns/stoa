@@ -1647,9 +1647,9 @@ export class LedgerStorage extends Storages {
 
                     unlock_height_query = `(
                             SELECT '${JSBI.add(
-                                height.value,
-                                JSBI.BigInt(2016)
-                            ).toString()}' AS unlock_height WHERE EXISTS
+                        height.value,
+                        JSBI.BigInt(2016)
+                    ).toString()}' AS unlock_height WHERE EXISTS
                             (
                                 SELECT
                                     *
@@ -4341,6 +4341,52 @@ export class LedgerStorage extends Storages {
                 accounts
             WHERE address = ?`;
         return this.query(sql, [address]);
+    }
+
+    /**
+     * Get block validators.
+     * @param block_height height of the block
+     * @returns returns the Promise with requested data
+     * and if an error occurs the .catch is called with an error.
+     */
+    public getBlockValidators(block_height: number, limit: number, page: number): Promise<any> {
+        const sql = `        
+            SELECT validators.address,
+                enrollments.enrolled_at,
+                enrollments.utxo_key as stake,
+                enrollments.commitment,
+                enrollments.avail_height,
+                validators.preimage_height,
+                validators.preimage_hash,
+                B.block_height as height,
+                B.slashed,
+                B.signed,
+                count(*) OVER() AS full_count
+            FROM (SELECT MAX(block_height) as enrolled_at,
+                    (CASE WHEN block_height = 0 THEN
+                          block_height
+                    ELSE
+                         block_height + 1
+                    END) as avail_height,
+                    enrollment_index,
+                    utxo_key,
+                    commitment,
+                    enroll_sig
+                FROM enrollments
+                GROUP BY utxo_key, block_height
+                HAVING avail_height <= ${block_height}
+                AND
+                ${block_height} < (avail_height + ?)
+                ) as enrollments
+            LEFT JOIN validators
+                ON enrollments.enrolled_at = validators.enrolled_at
+                AND enrollments.utxo_key = validators.utxo_key
+            LEFT join validator_by_block B
+            on(B.address = validators.address and
+            B.enrolled_height = validators.enrolled_at)
+            where B.block_height = ?
+            LIMIT ? OFFSET ?;`;
+        return this.query(sql, [this.validator_cycle, block_height, limit, limit * (page - 1)]);
     }
 
     /**

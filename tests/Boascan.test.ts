@@ -901,6 +901,83 @@ describe("Test of Stoa API Server", () => {
         const expected = { block: 0, transaction: 1 };
         assert.deepStrictEqual(response.data, expected);
     });
+
+    it("Test for /block/validator", async () => {
+        const uri = URI(stoa_addr)
+            .directory("/block/validators/")
+            .setSearch("height", "1")
+        const response = await client.get(uri.toString());
+        const expected = [
+            {
+                address: 'boa1xrvald6jsqfuctlr4nr4h9c224vuah8vgv7f9rzjauwev7j8tj04qee8f0t',
+                utxo_key: '0x00bac393977fbd1e0edc70a34c7ca802dafe57f2b4a2aabf1adaac54892cb1cbae72cdeeb212904101382690d18d2d2c6ac99b83227ca73b307fde0807c4af03',
+                pre_image: {
+                    height: '',
+                    hash: '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+                },
+                slashed: 0,
+                block_signed: 1,
+                full_count: 6
+            },
+            {
+                address: 'boa1xzvald7hxvgnzk50sy04ha7ezgyytxt5sgw323zy8dlj3ya2q40e6elltwq',
+                utxo_key: '0x6fbcdb2573e0f5120f21f1875b6dc281c2eca3646ec2c39d703623d89b0eb83cd4b12b73f18db6bc6e8cbcaeb100741f6384c498ff4e61dd189e728d80fb9673',
+                pre_image: {
+                    height: '',
+                    hash: '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+                },
+                slashed: 0,
+                block_signed: 1,
+                full_count: 6
+            },
+            {
+                address: 'boa1xrvald4v2gy790stemq4gg37v4us7ztsxq032z9jmlxfh6xh9xfak4qglku',
+                utxo_key: '0x70455f0b03f4b8d54b164b251e813b3fecd447d4bfe7b173ef86654429d2f5c3866d3ea406bf02163221a2d4029f0e0930a48304b2ea0f9277c2b32795c4005f',
+                pre_image: {
+                    height: '',
+                    hash: '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+                },
+                slashed: 0,
+                block_signed: 1,
+                full_count: 6
+            },
+            {
+                address: 'boa1xpvald2ydpxzl9aat978kv78y5g24jxy46mcnl7munf4jyhd0zjrc5x62kn',
+                utxo_key: '0x7fa36630b0d4a6be729fcab6db70c9b603f2da4c28feaa754f178b5cedb0174a9647fe8c08cdbfd244c6a5d23a7fdf89f1990e002c5565e1babbdb53193e95bc',
+                pre_image: {
+                    height: '',
+                    hash: '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+                },
+                slashed: 0,
+                block_signed: 1,
+                full_count: 6
+            },
+            {
+                address: 'boa1xzvald5dvy54j7yt2h5yzs2432h07rcn66j84t3lfdrlrwydwq78cz0nckq',
+                utxo_key: '0xd935b5f1b616e6ec5c96502395e4b89683f526bdb8845f93a67bd329d44b1c2e5c185492e9610c0e3648609b3a9a5b21a35ee1a16f234c6415099803a97306ca',
+                pre_image: {
+                    height: '',
+                    hash: '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+                },
+                slashed: 0,
+                block_signed: 1,
+                full_count: 6
+            },
+            {
+                address: 'boa1xrvald3zmehvpcmxqm0kn6wkaqyry7yj3cd8h975ypzlyz00sczpzhsk308',
+                utxo_key: '0xe0ea82fd0ab9c57b068123927c002750181366f417c30a6ded05a23aca99c2c98b508bba9ba7c496eee36d78eeb7b71f330f81633372a712010036c4dc506b07',
+                pre_image: {
+                    height: '',
+                    hash: '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+                },
+                slashed: 0,
+                block_signed: 1,
+                full_count: 6
+            }
+        ];
+        assert.deepStrictEqual(response.data, expected);
+    });
+
 });
 
 describe("Test of boascan - Proposal & Vote ", () => {
