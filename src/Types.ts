@@ -1264,6 +1264,16 @@ export interface IProposalAPI {
      */
     not_voted_percentage: number;
 
+    /**
+     * Voted Voted Percentage
+     */
+    voted_percentage: number;
+
+    /**
+     * Voted Voted numbers
+     */
+    total_voted: number;
+
 }
 
 /**
