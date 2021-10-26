@@ -4374,6 +4374,7 @@ export class LedgerStorage extends Storages {
                 SELECT 
                     P.proposal_id,
                     P.proposal_title,
+                    P.block_height,
                     P.proposal_result,
                     P.proposal_type,
                     P.fund_amount,
@@ -4454,6 +4455,7 @@ export class LedgerStorage extends Storages {
         const sql = `
                 SELECT P.proposal_title, 
                     P.proposal_id,
+                    P.block_height,
                     M.detail,
                     P.tx_hash,
                     M.voting_fee_hash,
