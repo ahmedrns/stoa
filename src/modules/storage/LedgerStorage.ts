@@ -2456,7 +2456,7 @@ export class LedgerStorage extends Storages {
                             ballot.app_name,
                             ballot.ballot,
                             tx_hash.toBinary(Endian.Little),
-                            ballot.card.address.toString(),
+                            ballot.card.validator_address.toString(),
                             ballot.sequence,
                             ballot.signature.toBinary(Endian.Little),
                             block.header.time_offset + storage.genesis_timestamp,
@@ -2568,7 +2568,7 @@ export class LedgerStorage extends Storages {
         }
 
         function updateValidatorBallots(storage: LedgerStorage, address: string, sequence: number,
-            ballot_answer: number, conn?: mysql.PoolConnection) {
+            ballot_answer: number, block_height: Height, conn?: mysql.PoolConnection) {
             return new Promise<void>(async (resolve, reject) => {
                 storage
                     .query(
@@ -2579,11 +2579,14 @@ export class LedgerStorage extends Storages {
                         WHERE 
                             voter_address = ? 
                         AND
-                            sequence = ?`,
+                            sequence = ?
+                        AND
+                            block_height = ?`,
                         [
                             ballot_answer,
                             address,
                             sequence,
+                            block_height
                         ],
                         conn
                     )
@@ -2643,7 +2646,6 @@ export class LedgerStorage extends Storages {
                         voter_address = ?
                         AND 
                         app_name = ?
-                        AND
                         ORDER BY sequence DESC LIMIT 1`;
             return storage.query(sql, [proposal_id, voter_address, app_name]);
         }
@@ -2678,7 +2680,6 @@ export class LedgerStorage extends Storages {
 
 
         function validatePreImage(validator: any): IPreimage {
-
             const preimage_hash: Buffer = validator.preimage_hash;
             let preimage_height: JSBI = JSBI.BigInt(validator.preimage_height);
             const target_height: Height = new Height(validator.height);
@@ -2687,30 +2688,17 @@ export class LedgerStorage extends Storages {
             let preimage_height_str: string;
 
             // Hashing preImage
-            if (
-                JSBI.greaterThanOrEqual(target_height.value, avail_height) &&
-                JSBI.greaterThanOrEqual(
-                    JSBI.add(avail_height, JSBI.BigInt(preimage_height)),
-                    target_height.value
-                )
-            ) {
+            if (JSBI.greaterThanOrEqual(JSBI.BigInt(preimage_height), target_height.value)) {
                 result_preimage_hash.fromBinary(preimage_hash, Endian.Little);
-                const count = JSBI.toNumber(
-                    JSBI.subtract(JSBI.add(avail_height, JSBI.BigInt(preimage_height)), target_height.value)
-                );
+                const count = JSBI.toNumber(JSBI.subtract(JSBI.BigInt(preimage_height), target_height.value));
                 for (let i = 0; i < count; i++) {
                     result_preimage_hash = hash(result_preimage_hash.data);
                     preimage_height = JSBI.subtract(preimage_height, JSBI.BigInt(1));
                 }
                 preimage_height_str = preimage_height.toString();
             } else {
-                if (JSBI.equal(target_height.value, JSBI.BigInt(validator.enrolled_at))) {
-                    preimage_height_str = "0";
-                    result_preimage_hash.fromBinary(validator.commitment, Endian.Little);
-                } else {
-                    preimage_height_str = "";
-                    result_preimage_hash = new Hash(Buffer.alloc(Hash.Width));
-                }
+                preimage_height_str = "";
+                result_preimage_hash = new Hash(Buffer.alloc(Hash.Width));
             }
 
             const preimage: IPreimage = {
@@ -2723,14 +2711,14 @@ export class LedgerStorage extends Storages {
         function process_ballots(storage: LedgerStorage, validator: IValidatorByBlock, proposal: IProposal, votingResult: IVotingResult, conn?: mysql.PoolConnection) {
             return new Promise<void>(async (resolve, reject) => {
                 try {
-                    const total_block = proposal.vote_end_height - (proposal.vote_start_height - 1);
+                    const total_block = proposal.vote_end_height - (proposal.block_height - 1);
                     const sign_count = await getSignCount(storage, validator.address, proposal.block_height, proposal.vote_end_height);
                     const uptime = bigDecimal.divide(bigDecimal.multiply(sign_count[0].sign_count, 100), total_block, 7);
                     const validator_info: any[] = await storage.getValidatorsAPI(new Height((proposal.vote_end_height + 7).toString()), validator.address);
                     const { height, hash } = validator_info[0] ? await validatePreImage(validator_info[0]) : { hash: new Hash(Buffer.alloc(Hash.Width)).toString(), height: '' };
 
                     if (Number(uptime) > LedgerStorage.validator_uptime_constant && height && hash) {
-                        getProposalVotesByValidator(storage, proposal.proposal_id, validator.address, proposal.app_name)
+                        await getProposalVotesByValidator(storage, proposal.proposal_id, validator.address, proposal.app_name)
                             .then(async (ballot: IBallot[]) => {
                                 if (ballot.length) {
                                     const ballot_preimage_hash: Hash = hashMulti(new Hash(hash), Buffer.from(ballot[0].app_name));
@@ -2741,19 +2729,24 @@ export class LedgerStorage extends Storages {
                                         case BallotData.YES:
                                             {
                                                 votingResult.approved = JSBI.add(votingResult.approved, JSBI.BigInt(1))
-                                                await updateValidatorBallots(storage, validator.address, ballot[0].sequence, BallotData.YES, conn);
+                                                await updateValidatorBallots(storage, validator.address, ballot[0].sequence, BallotData.YES, ballot[0].block_height, conn);
                                                 break;
                                             }
                                         case BallotData.NO:
                                             {
                                                 votingResult.opposed = JSBI.add(votingResult.opposed, JSBI.BigInt(1))
-                                                await updateValidatorBallots(storage, validator.address, ballot[0].sequence, BallotData.NO, conn);
+                                                await updateValidatorBallots(storage, validator.address, ballot[0].sequence, BallotData.NO, ballot[0].block_height, conn);
                                                 break;
                                             }
                                         case BallotData.BLANK:
                                             {
                                                 votingResult.abstain = JSBI.add(votingResult.abstain, JSBI.BigInt(1))
-                                                await updateValidatorBallots(storage, validator.address, ballot[0].sequence, BallotData.BLANK, conn);
+                                                await updateValidatorBallots(storage, validator.address, ballot[0].sequence, BallotData.BLANK, ballot[0].block_height, conn);
+                                                break;
+                                            }
+                                        default:
+                                            {
+                                                await rejectValidatorBallots(storage, validator.address, BallotData.REJECT, conn);
                                                 break;
                                             }
                                     }
@@ -2762,7 +2755,7 @@ export class LedgerStorage extends Storages {
                     }
                     else
                         await rejectValidatorBallots(storage, validator.address, BallotData.REJECT, conn);
-                    resolve();
+                    return resolve();
                 }
                 catch (err) {
                     return reject(err);
@@ -2775,7 +2768,7 @@ export class LedgerStorage extends Storages {
             let Qn: JSBI = JSBI.BigInt(0);
 
             quorum = JSBI.BigInt(Math.floor(Vn / 3));
-            Qn = Object.values(votingResult).reduce((sum, m) => JSBI.add(sum, m), JSBI.BigInt(0))
+            Qn = JSBI.add(JSBI.add(votingResult.approved, votingResult.opposed), votingResult.abstain);
             if (Qn > quorum) {
                 let F: JSBI = JSBI.subtract(votingResult.approved, votingResult.opposed);
                 const result = bigDecimal.divide(F, Vn, 7);
@@ -2789,17 +2782,14 @@ export class LedgerStorage extends Storages {
         return new Promise<void>((resolve, reject) => {
             (async () => {
                 try {
-                    let VotingResult: IVotingResult = { approved: JSBI.BigInt(0), opposed: JSBI.BigInt(0), abstain: JSBI.BigInt(0) }
                     let validators_by_block: IValidatorByBlock[] = [];
                     let proposal: IProposal[] = await this.getProposalByStatus(ProposalStatus.COUNTING_VOTES);
                     proposal = proposal.filter((element) => JSBI.equal(JSBI.BigInt(element.vote_end_height + 7), block.header.height.value));
 
                     for (let proposal_index = 0; proposal_index < proposal.length; proposal_index++) {
+                        let VotingResult: IVotingResult = { approved: JSBI.BigInt(0), opposed: JSBI.BigInt(0), abstain: JSBI.BigInt(0) }
                         validators_by_block = await this.getValidatorsByBlock(new Height(proposal[proposal_index].block_height.toString()));
-
-                        for (let validator_index = 0; validator_index < validators_by_block.length; validator_index++) {
-                            await process_ballots(this, validators_by_block[validator_index], proposal[proposal_index], VotingResult, conn)
-                        }
+                        await Promise.all(validators_by_block.map(async (element) => { await process_ballots(this, element, proposal[proposal_index], VotingResult, conn) }));
                         let result = await computeResult(VotingResult, validators_by_block.length);
                         await updateProposals(this, proposal[proposal_index].proposal_id, proposal[proposal_index].app_name, ProposalStatus.CLOSED, result ? ProposalResult.PASSED : ProposalResult.REJECTED, conn);
                     }
@@ -2812,7 +2802,7 @@ export class LedgerStorage extends Storages {
                     reject(err);
                     return;
                 }
-                resolve();
+                return resolve();
             })();
         });
     }
@@ -3700,11 +3690,15 @@ export class LedgerStorage extends Storages {
                             )
                         ORDER BY T.block_height, O.utxo_key
                     ) AS TB_RAW,
-                    (SELECT @INCLUDE := 0) AS U
+                    (SELECT @INCLUDE := 0) AS U,
+                    (SELECT EXISTS (SELECT * FROM utxos WHERE utxo_key = ? AND address = ? LIMIT 1) as exists_prev) AS TB_EXIST_UTXO
                 ) TB_FOR_FILTER_UTXO
                 WHERE
                     (
-                        (? <> x'00') AND (include = 2)
+                        (? <> x'00') AND (include = 2) AND (exists_prev = 1)
+                    ) OR
+                    (
+                        (? <> x'00') AND (exists_prev = 0)
                     ) OR
                     (
                         (? = x'00')
@@ -3725,6 +3719,9 @@ export class LedgerStorage extends Storages {
                 balance_type,
                 balance_type,
                 address,
+                utxo,
+                address,
+                utxo,
                 utxo,
                 utxo,
                 amount.toString(),
@@ -4486,7 +4483,7 @@ export class LedgerStorage extends Storages {
                             row.ballot_answer === 1 ? (noCount = row.count) : 0;
                             row.ballot_answer === 2 ? (abstainCount = row.count) : 0;
                         }
-                        const votedCount = yesCount + noCount + abstainCount;
+                        const votedCount = data[0] ? data[0].count : 0;
                         const notVotedCount = totalValidators - votedCount;
                         result.proposalData[i].total_validators = totalValidators;
                         result.proposalData[i].yes_percent = (yesCount / totalValidators) * 100;
@@ -4531,7 +4528,8 @@ export class LedgerStorage extends Storages {
                     M.pre_evaluation_end_time,
                     M.ave_pre_evaluation_score,
                     P.proposer_address,
-                    P.proposal_fee_address
+                    P.proposal_fee_address,
+                    P.proposal_result
                 FROM proposal P 
                 LEFT OUTER JOIN proposal_metadata M
                 ON (P.proposal_id = M.proposal_id)
@@ -4582,8 +4580,8 @@ export class LedgerStorage extends Storages {
                         row.ballot_answer === 1 ? (noCount = row.count) : 0;
                         row.ballot_answer === 2 ? (abstainCount = row.count) : 0;
                     }
-                    const notVotedCount = totalValidators - yesCount - noCount - abstainCount;
-                    const votedCount = yesCount + noCount + abstainCount;
+                    const votedCount = rows[0] ? rows[0].count : 0;
+                    const notVotedCount = totalValidators - votedCount;
                     result.yes = yesCount;
                     result.no = noCount;
                     result.abstain = abstainCount;
@@ -4720,6 +4718,38 @@ export class LedgerStorage extends Storages {
         return this.query(sql, [status]);
     }
 
+
+    /**
+     * This method is used to get the ballots of given address.
+     * @param proposal_id The proposal id
+     * @param type The type filter
+     * @param height The height filter
+     * @returns Returns the Promise. If it is finished successfully the `.then`
+     * of the returned Promise is called with the block height
+     * and if an error occurs the `.catch` is called with an error.
+     */
+    public getProposalBallots(proposal_id: string, type?: string, height?: number) {
+        let type_filter = type ? `AND B.ballot_answer = ${type}` : '';
+        let height_filter = height ? `AND B.block_height = ${height}` : '';
+        let sql = `
+                SELECT 
+                   B.proposal_id,         
+                   B.block_height,       
+                   B.app_name,           
+                   B.tx_hash,            
+                   B.voter_address,       
+                   B.sequence,          
+                   B.ballot,             
+                   B.signature,          
+                   B.voting_time,        
+                   B.ballot_answer
+                FROM 
+                    proposal P INNER JOIN ballots B ON(P.proposal_id = B.proposal_id)
+                WHERE 
+                P.proposal_id = ? ${type_filter} ${height_filter}`;
+
+        return this.query(sql, [proposal_id]);
+    }
 
     /**
      * Get proposal's voting details
